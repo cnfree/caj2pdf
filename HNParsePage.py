@@ -37,6 +37,8 @@ class HNParsePage(object):
                     self.characters.append(hash[code])
                 except KeyError:
                     self.characters.append("<0x%04X>\n" % code)
+            except Exception as e:
+                print(e)          
             self.offset += 6
 
         def TextMulti(self, code):
@@ -50,9 +52,12 @@ class HNParsePage(object):
                 self.offset += 4
 
         def Figure(self, code):
-            (ignore1, offset_x, offset_y, size_x, size_y, int2, int3, int4, int5)= struct.unpack("<HHHHHIIII", self.data[self.offset:self.offset+26])
-            # in units of 1/2.473 pixels
-            self.figures.append([offset_x, offset_y, size_x, size_y])
+            try:
+                (ignore1, offset_x, offset_y, size_x, size_y, int2, int3, int4, int5)= struct.unpack("<HHHHHIIII", self.data[self.offset:self.offset+26])
+                # in units of 1/2.473 pixels
+                self.figures.append([offset_x, offset_y, size_x, size_y])
+            except Exception as e:
+                print(e) 
             self.offset += 26
 
         if (not old_style):

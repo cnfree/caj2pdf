@@ -2296,7 +2296,10 @@ def convert_ImageList(*images, **kwargs):
             coordinates = images.pop(0)
             collected_images = images[:len(coordinates)]
             del images[:len(coordinates)]
-            pdf.add_multi_imagepage(coordinates, collected_images)
+            try:
+                pdf.add_multi_imagepage(coordinates, collected_images)
+            except Exception as e:
+                print(e)     
             continue
 
         (

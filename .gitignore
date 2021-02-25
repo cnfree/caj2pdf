@@ -6,7 +6,6 @@
 # User-specific stuff:
 .idea/
 .vscode/
-*.caj
 *.tmp
 *.pdf
 cajs/
@@ -126,3 +125,6 @@ ENV/
 
 # Rope project settings
 .ropeproject
+/.project
+/caj2pdf.exe
+/pdrepair.exe

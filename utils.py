@@ -197,20 +197,23 @@ def add_outlines(toc, filename, output):
     })
     olitems = []
     for t in toc:
-        oli = PDF.DictionaryObject()
-        oli.update({
-            PDF.NameObject("/Title"): PDF.TextStringObject(t["title"].decode("utf-8")),
-            PDF.NameObject("/Dest"): make_dest(pdf_out, t["page"])
-        })
-        opt_keys = {"real_parent": "/Parent", "prev": "/Prev",
-                    "next": "/Next", "first": "/First", "last": "/Last"}
-        for k, v in opt_keys.items():
-            n = getattr(t["node"], k)()
-            if n is not None:
-                oli.update({
-                    PDF.NameObject(v): idorefs[n.index]
-                })
-        olitems.append(oli)
+        try:
+            oli = PDF.DictionaryObject()
+            oli.update({
+                PDF.NameObject("/Title"): PDF.TextStringObject(t["title"].decode("utf-8")),
+                PDF.NameObject("/Dest"): make_dest(pdf_out, t["page"])
+            })
+            opt_keys = {"real_parent": "/Parent", "prev": "/Prev",
+                        "next": "/Next", "first": "/First", "last": "/Last"}
+            for k, v in opt_keys.items():
+                n = getattr(t["node"], k)()
+                if n is not None:
+                    oli.update({
+                        PDF.NameObject(v): idorefs[n.index]
+                    })
+            olitems.append(oli)
+        except Exception as e:
+                print(e) 
     pdf_out._addObject(ol)
     for i in olitems:
         pdf_out._addObject(i)

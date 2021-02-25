@@ -1,5 +1,6 @@
 import os
 import struct
+import uuid
 from shutil import copy
 from subprocess import check_output, STDOUT, CalledProcessError
 from utils import fnd, fnd_all, add_outlines, fnd_rvrs, fnd_unuse_no
@@ -140,9 +141,12 @@ class CAJParser(object):
         pdf_length = pdf_end - pdf_start
         caj.seek(pdf_start)
         pdf_data = b"%PDF-1.3\r\n" + caj.read(pdf_length) + b"\r\n"
-        with open("pdf.tmp", 'wb') as f:
+        
+        tmpfile = str(uuid.uuid4()) + ".tmp";
+        
+        with open(tmpfile, 'wb') as f:
             f.write(pdf_data)
-        pdf = open("pdf.tmp", "rb")
+        pdf = open(tmpfile, "rb")
 
         # deal with disordered PDF data
         endobj_addr = fnd_all(pdf, b"endobj")
@@ -168,7 +172,10 @@ class CAJParser(object):
             length = fnd(pdf, b" ", addr) - addr
             pdf.seek(addr)
             [ind] = struct.unpack(str(length) + "s", pdf.read(length))
-            inds.append(int(ind))
+            try:
+                inds.append(int(ind))
+            except Exception as e:
+                print(e)
         # get pages_obj_no list containing distinct elements
         # & find missing pages object(s) -- top pages object(s) in pages_obj_no
         pages_obj_no = []
@@ -210,9 +217,9 @@ class CAJParser(object):
             catalog_obj_no, root_pages_obj_no), "utf-8")
         pdf_data += catalog
         pdf.close()
-        with open("pdf.tmp", 'wb') as f:
+        with open(tmpfile, 'wb') as f:
             f.write(pdf_data)
-        pdf = open("pdf.tmp", "rb")
+        pdf = open(tmpfile, "rb")
 
         # Add Pages obj and EOF mark
         # if root pages object exist, pass
@@ -224,9 +231,9 @@ class CAJParser(object):
                 root_pages_obj_no, kids_str, self.page_num)
             pdf_data += bytes(pages_str, "utf-8")
             pdf.close()
-            with open("pdf.tmp", 'wb') as f:
+            with open(tmpfile, 'wb') as f:
                 f.write(pdf_data)
-            pdf = open("pdf.tmp", "rb")
+            pdf = open(tmpfile, "rb")
         # deal with multiple missing pages objects
         if multi_pages_obj_missed:
             kids_dict = {i: [] for i in top_pages_obj_no}
@@ -254,8 +261,11 @@ class CAJParser(object):
                             pdf.seek(cnt_addr + cnt_len)
                             [_str] = struct.unpack("1s", pdf.read(1))
                         pdf.seek(cnt_addr)
-                        [cnt] = struct.unpack(str(cnt_len) + "s", pdf.read(cnt_len))
-                        count_dict[tpon] += int(cnt)
+                        try:
+                            [cnt] = struct.unpack(str(cnt_len) + "s", pdf.read(cnt_len))
+                            count_dict[tpon] += int(cnt)
+                        except Exception as e:
+                            print(e)
                     else:  # _type == b"Page"
                         count_dict[tpon] += 1
                 kids_no_str = ["{0} 0 R".format(i) for i in kids_dict[tpon]]
@@ -265,20 +275,20 @@ class CAJParser(object):
                 pdf_data += bytes(pages_str, "utf-8")
         pdf_data += bytes("\n%%EOF\r", "utf-8")
         pdf.close()
-        with open("pdf.tmp", 'wb') as f:
+        with open(tmpfile, 'wb') as f:
             f.write(pdf_data)
 
-        # Use mutool to repair xref
+        tmp_outline_file = str(uuid.uuid4()) + ".pdf";
+        # Use pdrepair to repair xref
         try:
-            check_output(["mutool", "clean", "pdf.tmp", "pdf_toc.pdf"], stderr=STDOUT)
+            check_output(["pdrepair", tmpfile, tmp_outline_file], stderr=STDOUT)
         except CalledProcessError as e:
             print(e.output.decode("utf-8"))
-            raise SystemExit("Command mutool returned non-zero exit status " + str(e.returncode))
 
         # Add Outlines
-        add_outlines(self.get_toc(), "pdf_toc.pdf", dest)
-        os.remove("pdf.tmp")
-        os.remove("pdf_toc.pdf")
+        add_outlines(self.get_toc(), tmp_outline_file, dest)
+        os.remove(tmpfile)
+        os.remove(tmp_outline_file)
 
     def _convert_hn(self, dest):
         caj = open(self.filename, "rb")
@@ -308,11 +318,11 @@ class CAJParser(object):
             page_data = HNParsePage(output, page_style)
 
             if (images_per_page > 1):
-                if (len(page_data.figures) == images_per_page):
+                # if (len(page_data.figures) == images_per_page):
                     image_list.append(None)
                     image_list.append(page_data.figures)
-                else:
-                    raise SystemExit("Image Count %d != %d" % (len(page_data.figures), images_per_page))
+                # else:
+                #    raise SystemExit("Image Count %d != %d" % (len(page_data.figures), images_per_page))
             current_offset = page_data_offset + size_of_text_section
             for j in range(images_per_page):
                 caj.seek(current_offset)
@@ -546,16 +556,17 @@ class CAJParser(object):
             raise Exception("%%EOF mark can't be found.")
         output = output[:eofpos + 5]
 
+        tmpfile = str(uuid.uuid4()) + ".tmp";
+
         #  Write output file.
-        fp = open(dest + ".tmp", "wb")
+        fp = open(tmpfile, "wb")
         fp.write(output)
         fp.close()
 
-        # Use mutool to repair xref
+        # Use pdrepair to repair xref
         try:
-            check_output(["mutool", "clean", dest + ".tmp", dest], stderr=STDOUT)
+            check_output(["pdrepair", tmpfile, dest], stderr=STDOUT)
         except CalledProcessError as e:
             print(e.output.decode("utf-8"))
-            raise SystemExit("Command mutool returned non-zero exit status " + str(e.returncode))
 
-        os.remove(dest + ".tmp")
+        os.remove(tmpfile)
