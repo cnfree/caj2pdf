@@ -38,7 +38,9 @@ class HNParsePage(object):
                 except KeyError:
                     self.characters.append("<0x%04X>\n" % code)
             except Exception as e:
-                print(e)          
+                print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+                print('错误所在的行号：', e.__traceback__.tb_lineno)
+                print('错误信息', e)         
             self.offset += 6
 
         def TextMulti(self, code):
@@ -46,9 +48,20 @@ class HNParsePage(object):
             if (code == 0x8001):
                 self.characters.append("\n")
             while (1):
-                if (self.data[self.offset+1] == 0x80):
-                    break
-                self.characters.append(bytes([self.data[self.offset+3],self.data[self.offset+2]]).decode("gbk"))
+                try:   
+                    if (self.data[self.offset+1] == 0x80):
+                        break
+                except Exception as e:
+                    print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+                    print('错误所在的行号：', e.__traceback__.tb_lineno)
+                    print('错误信息', e)  
+                    break                      
+                try:    
+                    self.characters.append(bytes([self.data[self.offset+3],self.data[self.offset+2]]).decode("gbk"))
+                except Exception as e:
+                    print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+                    print('错误所在的行号：', e.__traceback__.tb_lineno)
+                    print('错误信息', e)  
                 self.offset += 4
 
         def Figure(self, code):
@@ -57,7 +70,9 @@ class HNParsePage(object):
                 # in units of 1/2.473 pixels
                 self.figures.append([offset_x, offset_y, size_x, size_y])
             except Exception as e:
-                print(e) 
+                print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+                print('错误所在的行号：', e.__traceback__.tb_lineno)
+                print('错误信息', e)  
             self.offset += 26
 
         if (not old_style):

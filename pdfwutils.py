@@ -2299,21 +2299,28 @@ def convert_ImageList(*images, **kwargs):
             try:
                 pdf.add_multi_imagepage(coordinates, collected_images)
             except Exception as e:
-                print(e)     
+                print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+                print('错误所在的行号：', e.__traceback__.tb_lineno)
+                print('错误信息', e)    
             continue
 
-        (
-            color,
-            ndpi,
-            imgformat,
-            imgdata,
-            imgwidthpx,
-            imgheightpx,
-            palette,
-            inverted,
-            depth,
-            rotation,
-        ) = image_item
+        try:
+            (
+                color,
+                ndpi,
+                imgformat,
+                imgdata,
+                imgwidthpx,
+                imgheightpx,
+                palette,
+                inverted,
+                depth,
+                rotation,
+            ) = image_item
+        except Exception as e:
+            print('发生错误的文件：', e.__traceback__.tb_frame.f_globals['__file__'])
+            print('错误所在的行号：', e.__traceback__.tb_lineno)
+            print('错误信息', e)
 
         pagewidth, pageheight, imgwidthpdf, imgheightpdf = kwargs["layout_fun"](
             imgwidthpx, imgheightpx, ndpi
